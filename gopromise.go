@@ -39,8 +39,8 @@ func All(callbacks ...func() interface{}) <-chan interface{} {
 	return p
 }
 
-// Call callbacks using recursive select statements
-func raceRecursive(callbacks []func() interface{}) <-chan interface{} {
+// Race will run multiple tasks and return the first one completed
+func Race(callbacks ...func() interface{}) <-chan interface{} {
 	switch len(callbacks) {
 		case 0: return nil
 		case 1: return Promise(callbacks[0])
@@ -50,22 +50,10 @@ func raceRecursive(callbacks []func() interface{}) <-chan interface{} {
 	
 				select {
 					case result = <-Promise(callbacks[0]):
-					case result = <-raceRecursive(callbacks[1:]):
+					case result = <-Race(callbacks[1:]...):
 				}
 	
 				return result
 			})
 	}
-}
-
-// Race will run multiple tasks and return the first one completed
-func Race(callbacks ...func() interface{}) <-chan interface{} {
-	p := make(chan interface{})
-
-	go func() {
-		defer close(p)
-		p <- (<-raceRecursive(callbacks))
-	}()
-
-	return p
 }
